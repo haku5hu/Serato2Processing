@@ -1,8 +1,7 @@
 # interfacing serato with processing
 
 ## description
-systems to interface serato with into processing
-Visualisation/VJ software, and potentially a sonic manipulation layer
+systems to interfacing serator for visualisation of Dj data
 
 ### objectives
 interface with history file
@@ -13,42 +12,29 @@ realtime interface to contol audio through processing
 
 interface with midi data and explore this
 
-
-### system model
-link to google slides
-
 ## setup
+For win10:
+1. Install php 8, I used chocolatey package manager <br>
+		https://chocolatey.org/install, then in a shell:  <br>
+		`choco install php`
+2. Download ben-xo/sslscrobbler <br>
+		`git clone https://github.com/ben-xo/sslscrobbler.git`
+3. Remove the ; to uncomment the following in php.ini ("C:\tools\php82\php.ini"). Open it in a text file and search for these
+		`extension=socket` <br>
+		`extension=mbstring` <br>
+the socket is for json, mbstring is for text conversion
+4. Install Serato
+		https://serato.com/dj/pro/downloads
 
-### Serato
+## running
+1. run sslscrobbler with Json flag from a shell <br>
+	`php "C:\Documents and Settings\ben\Desktop\historyreader.php" -J 8080`
+2. Start Serato 
+3. Start Processing sketch <br>
 
-### Scrobbler
-php 
-https://github.com/ben-xo/sslscrobbler
-This reads a binary history file - looks good
-
-python
-this is a twitch plugin
-https://github.com/e1miran/Now-Playing-Serato/tree/master
-and a fork
-https://github.com/whatsnowplaying/whats-now-playing
-
-rust
-https://awesomeopensource.com/project/Holzhaus/triseratops 
-go
-https://pkg.go.dev/github.com/SpinTools/seratoparser
-js
-https://tobiasjacob.github.io/seratolibraryparser/index.html
-
-
-
-java
-~~https://gitlab.com/eladmaz/SeratoCrateExporter~~
-Not reading history file
-
-
-
+loading tracks into should update the json, mousePressed() in processing pulls it from a server established from historyreader.php
+	
 ## useful info
-about the history file
 https://support.serato.com/hc/en-us/articles/204022904-What-is-in-the-Serato-folder-
 
 someone going on about midi output through an xml

@@ -1,0 +1,24 @@
+Other scrobbler stuff
+php 
+https://github.com/ben-xo/sslscrobbler
+This reads a binary history file - working
+
+python
+this is a twitch plugin
+https://github.com/e1miran/Now-Playing-Serato/tree/master
+and a fork
+https://github.com/whatsnowplaying/whats-now-playing
+
+rust
+https://awesomeopensource.com/project/Holzhaus/triseratops 
+go
+https://pkg.go.dev/github.com/SpinTools/seratoparser
+js
+https://tobiasjacob.github.io/seratolibraryparser/index.html
+
+
+
+java
+~~https://gitlab.com/eladmaz/SeratoCrateExporter~~
+Not reading history file
+
