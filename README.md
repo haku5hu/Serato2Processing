@@ -15,18 +15,19 @@ interface with midi data and explore this
 ## setup
 For win10:
 1. Install php 8, I used chocolatey package manager
-		`code`choco install php
+		https://chocolatey.org/install
+		`choco install php`
 2. Download ben-xo/sslscrobbler
-		git clone https://github.com/ben-xo/sslscrobbler.git
-3. Remove the ; to uncomment the following in php.ini ("C:\tools\php82\php.ini"). Open it in a text file and search for these
-		extension=socket
-		extension=mbstring
+		`git clone https://github.com/ben-xo/sslscrobbler.git`
+3. Remove the ; to uncomment the following in php.ini ("C:\tools\php82\php.ini"). Open it in a text file and search for these<br>
+		`extension=socket` <br>
+		`extension=mbstring`
 4. Install Serato
 		https://serato.com/dj/pro/downloads
 
 ## running
-1. run sslscrobbler with Json flag from a shell
-	$ php "C:\Documents and Settings\ben\Desktop\historyreader.php"
+1. run sslscrobbler with Json flag from a shell:L <br>
+	`php "C:\Desktop\sslscrobbler\historyreader.php" -J 8080`
 2. Start serato 
 3. Start processing sketch
 	
