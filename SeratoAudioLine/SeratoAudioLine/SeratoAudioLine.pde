@@ -1,127 +1,105 @@
-import javax.sound.sampled.*;
-import java.io.ByteArrayOutputStream;
-import java.io.AudioInputStream;
-import java.io.ByteArrayInputStream;
+import beads.*;
+
+AudioContext fromSerato; //virtural hardware connection
+AudioContext toSpeakers; //physical hardware connection
+Gain g;                  //audio signal chain
+BiquadFilter f;
+Glide gGlide, fGlide;    //rt control on signal chain
+
+int bars; //visual feedback of audio frame
+int audioChunk; //divide the audio frame into chunks
+
+JSONObject json;
 
 void setup() {
-  // Open the virtual audio cable
-  Mixer.Info[] mixerInfos = AudioSystem.getMixerInfo();
-  Mixer mixer = null;
-  for (Mixer.Info info : mixerInfos) {
-    //println(info.getName());
-    //pulling the 'output'? how do I tell if its an input or output
-    if (info.getName().equals("Line 1 (Virtual Audio Cable)")) {
-      mixer = AudioSystem.getMixer(info);
-      println("connected vac");
-      //break;
-      //printArray(AudioSystem.getLine(info));
+  //drawing
+  size(500, 500);
+  frameRate(24);
+  rectMode(CENTER);
+  noStroke();
+
+  //separate interfaces for different hardware
+  JavaSoundAudioIO jSoundInput = new JavaSoundAudioIO(4096);
+  JavaSoundAudioIO jSoundOutput = new JavaSoundAudioIO(4096);
+
+  //jSoundInput.printMixerInfo(); exit();//uncomment to find interfaces on this computer
+  jSoundInput.selectMixer(21); //JavaSoundAudioIO: Chosen mixer is Line 1 (Virtual Audio Cable).
+  jSoundOutput.selectMixer(22); //JavaSoundAudioIO: Chosen mixer is Output 1/2 (2- Audient iD14).
+
+  IOAudioFormat ioFormat = new IOAudioFormat(44100, 16, 1, 1); //same format for virtual/real audio interfaces
+
+  fromSerato = new AudioContext(jSoundInput, 4096, ioFormat);  //getting from Virtual Audio Cable
+  toSpeakers = new AudioContext(jSoundOutput, 4096, ioFormat); //going to physical audio interface
+
+  //signal chain
+  UGen lineFromSerato = fromSerato.getAudioInput(); //read from Virtual Audio Cable
+  gGlide = new Glide(toSpeakers, 1, 10f); //control gain -> updates in draw loop but slides at audio rate with 10ms latency
+  fGlide = new Glide(toSpeakers, 1, 10f); //control lp cutoff
+
+  g = new Gain(toSpeakers, 1, gGlide);    //UGens in toSpeakers context
+  f = new BiquadFilter(toSpeakers, 1, BiquadFilter.LP);
+  f.setQ(1).setFrequency(fGlide);         //cant case this constructor for whatever reason
+
+  g.addInput(lineFromSerato);             //connect em
+  f.addInput(g);
+  toSpeakers.out.addInput(f);             //pass from virtual to physical hardware
+
+  fromSerato.start();
+  toSpeakers.start();
+
+  //audio-visual
+  bars = 10;
+  audioChunk = toSpeakers.getBufferSize() / bars;
+
+  //text from php scrobbler
+  json = loadJSONObject("http://localhost:8080/nowplaying.json"); //the php script gets serato data on a local server
+  textFont(createFont("Arial", 16));
+}
+
+void draw() {
+  //bg
+  fill(0, 40);
+  rect(width/2, height/2, width, height);
+
+  if(frameCount % 5 == 0) drawBars();
+  updateAudioFromDrawLoop();
+  displaySeratoValues(json);
+}
+
+void drawBars() {
+  
+  for (int i = 0; i < bars; i++) { //average audio frame into each bar
+    float averageForThisBar = 0;
+    for (int j = 0; j < audioChunk; j++) { //draw bars off buffer frame
+      float sampleAmplitude = ((toSpeakers.out.getValue(0, j + i * audioChunk)));
+      averageForThisBar += sampleAmplitude;
     }
-  }
+    averageForThisBar /= audioChunk;
 
-  if (mixer == null) {
-    println("Virtual Audio Cable not found!");
-    return;
-  }
-
-  //DataLine.Info dataLineInfo = new DataLine.Info(getSourceLineInfo.class, null);
-  AudioFormat audioFormat = new AudioFormat(44100, 16, 1, true, true);
-  DataLine.Info dataLineInfo = new DataLine.Info(TargetDataLine.class, audioFormat);
-  try {
-    println("chk2");
-    final int bufferSize = 2200; // in Bytes
-    TargetDataLine tLine = (TargetDataLine) mixer.getLine(dataLineInfo);
-    tLine.open(audioFormat, bufferSize);
-
-    int frameSizeInBytes = audioFormat.getFrameSize();
-    int bufferLengthInFrames = tLine.getBufferSize() / 8;
-    final int bufferLengthInBytes = bufferLengthInFrames * frameSizeInBytes;
-    buildByteOutputStream(out, line, frameSizeInBytes, bufferLengthInBytes);
-    this.audioInputStream = new AudioInputStream(line);
-
-    setAudioInputStream(convertToAudioIStream(out, frameSizeInBytes));
-    audioInputStream.reset();
-
-    tLine.start();
-    byte counter = 0;
-    final byte[] buffer = new byte[bufferSize];
-    byte sign = 1;
-    while (true) {
-      int threshold = (int)audioFormat.getFrameRate();
-      for (int i = 0; i < bufferSize; i++) {
-        if (counter > threshold) {
-          sign = (byte) -sign;
-          counter = 0;
-        }
-        buffer[i] = (byte) (sign * 30);
-        counter++;
-        if (counter == 0) {
-          println(buffer[32]);
-        }
-      }
-    }
-  }
-  catch (LineUnavailableException e) {
-    e.printStackTrace();
+    fill(255);//draw bars using the average for the last audioChunk samples in the audio buffer
+    rect((width/bars * 0.5) + width/bars * i, height/2, 10, averageForThisBar * height * 0.5);
   }
 }
 
-void buildByteOutputStream(final ByteArrayOutputStream out, final TargetDataLine line, int frameSizeInBytes, final int bufferLengthInBytes) throws IOException {
-  final byte[] data = new byte[bufferLengthInBytes];
-  int numBytesRead;
-
-  line.start();
-  while (thread != null) {
-    if ((numBytesRead = line.read(data, 0, bufferLengthInBytes)) == -1) {
-      break;
+void displaySeratoValues(JSONObject jsonObject) {
+  int vDist = 20;
+  for (Object obj : jsonObject.keys()) {
+    int hDist = 0;
+    String property = obj.toString() + ": ";
+    if (!property.startsWith("UNKNOWN")) {
+      fill(255, 0, 0);
+      text(property, hDist, vDist); //red label
+      hDist += textWidth(property); //step across for val
+      String val = json.get(obj.toString()).toString();
+      fill(255);//white text for vals
+      text(val, hDist, vDist);
+      vDist += 32; //step down for next obj
     }
-    out.write(data, 0, numBytesRead);
   }
 }
-AudioInputStream convertToAudioIStream(final ByteArrayOutputStream out, int frameSizeInBytes) {
-  byte audioBytes[] = out.toByteArray();
-  ByteArrayInputStream bais = new ByteArrayInputStream(audioBytes);
-  AudioInputStream audioStream = new AudioInputStream(bais, format, audioBytes.length / frameSizeInBytes);
-  long milliseconds = (long) ((audioInputStream.getFrameLength() * 1000) / format.getFrameRate());
-  duration = milliseconds / 1000.0;
-  return audioStream;
+
+void updateAudioFromDrawLoop() {
+  if (pmouseX == mouseX && pmouseY == mouseY) return; //bail if mouse is still
+  gGlide.setValue((float)mouseX/width); //otherwise update audio
+  fGlide.setValue(20+((float)mouseY/height * 5000));
 }
-
-// Set up the data line info for capturing audio
-//DataLine.Info dataLineInfo = new DataLine.Info(TargetDataLine.class, null);
-////AudioFormat audioFormat = new AudioFormat(48000, 16, 1, true, true);
-//DataLine.Info dataLineInfo = new DataLine.Info(TargetDataLine.class, audioFormat);
-
-//  printArray(dataLineInfo.getFormats());
-//  // Open the data line for capturing audio
-//  try {
-//    TargetDataLine targetDataLine = (TargetDataLine) mixer.getLine(dataLineInfo);
-//    targetDataLine.open(audioFormat);
-//    targetDataLine.start();
-//  }
-//  catch (LineUnavailableException e) {
-//    e.printStackTrace();
-//  }
-//  //Get available audio formats
-//  AudioFormat[] formats = ((DataLine.Info) dataLineInfo).getFormats();
-
-//  //println(formats[0]);
-
-//  // Choose the first available format
-//  //AudioFormat audioFormat = formats[0];
-//  //println(audioFormat.getSampleRate());
-
-//  // Open the data line for capturing audio
-
-
-//  //// Set up the audio format for capturing audio data
-
-//  //DataLine.Info dataLineInfo = new DataLine.Info(TargetDataLine.class, audioFormat);
-
-//  //// Open the data line for capturing audio
-//  //try{
-//  //TargetDataLine targetDataLine = (TargetDataLine) mixer.getLine(dataLineInfo);
-//  //targetDataLine.open(audioFormat);
-//  //targetDataLine.start();
-//  //} catch (LineUnavailableException e) {
-//  //e.printStackTrace();
-//}
