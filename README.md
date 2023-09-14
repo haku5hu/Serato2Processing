@@ -4,13 +4,14 @@
 stuff for visualisation/VJ software direct from serato
 
 ### objectives
-interface with history file
+interface with history file <br>
 update processing in realtime from history file
 
-interface with audio out from serato
+interface with audio out from serato <br>
 realtime interface to contol audio through processing
 
-interface with midi data and explore this
+interface with midi data <br>
+TODO
 
 ## setup
 For win10:
