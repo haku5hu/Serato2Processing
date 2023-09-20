@@ -9,7 +9,7 @@ Glide gGlide, fGlide;    //rt control on signal chain
 int bars; //visual feedback of audio frame
 int audioChunk; //divide the audio frame into chunks
 
-JSONObject json;
+//JSONObject json;
 
 void setup() {
   //drawing
@@ -19,12 +19,18 @@ void setup() {
   noStroke();
 
   //separate interfaces for different hardware
-  JavaSoundAudioIO jSoundInput = new JavaSoundAudioIO(4096);
-  JavaSoundAudioIO jSoundOutput = new JavaSoundAudioIO(4096);
+  JavaSoundAudioIO jSoundInput = new JavaSoundAudioIO(4096); //should be a Capture/TargetDataLine
+  JavaSoundAudioIO jSoundOutput = new JavaSoundAudioIO(4096); //should be SourceDataLine
 
   //jSoundInput.printMixerInfo(); exit();//uncomment to find interfaces on this computer
-  jSoundInput.selectMixer(21); //JavaSoundAudioIO: Chosen mixer is Line 1 (Virtual Audio Cable).
-  jSoundOutput.selectMixer(22); //JavaSoundAudioIO: Chosen mixer is Output 1/2 (2- Audient iD14).
+
+  //for on laptop
+  jSoundInput.selectMixer(10); //JavaSoundAudioIO: Chosen mixer is Line 1 (Virtual Audio Cable).
+  jSoundInput.selectMixer(9); //JavaSoundAudioIO: Chosen mixer is Line 1 (Virtual Audio Cable).
+
+
+  //jSoundInput.selectMixer(21); //JavaSoundAudioIO: Chosen mixer is Line 1 (Virtual Audio Cable).
+  //jSoundOutput.selectMixer(22); //JavaSoundAudioIO: Chosen mixer is Output 1/2 (2- Audient iD14).
 
   IOAudioFormat ioFormat = new IOAudioFormat(44100, 16, 1, 1); //same format for virtual/real audio interfaces
 
@@ -52,7 +58,7 @@ void setup() {
   audioChunk = toSpeakers.getBufferSize() / bars;
 
   //text from php scrobbler
-  json = loadJSONObject("http://localhost:8080/nowplaying.json"); //the php script gets serato data on a local server
+  //json = loadJSONObject("http://localhost:8080/nowplaying.json"); //the php script gets serato data on a local server
   textFont(createFont("Arial", 16));
 }
 
@@ -61,13 +67,13 @@ void draw() {
   fill(0, 40);
   rect(width/2, height/2, width, height);
 
-  if(frameCount % 5 == 0) drawBars();
+  if (frameCount % 5 == 0) drawBars();
   updateAudioFromDrawLoop();
-  displaySeratoValues(json);
+  //displaySeratoValues(json);
 }
 
 void drawBars() {
-  
+
   for (int i = 0; i < bars; i++) { //average audio frame into each bar
     float averageForThisBar = 0;
     for (int j = 0; j < audioChunk; j++) { //draw bars off buffer frame
@@ -82,20 +88,20 @@ void drawBars() {
 }
 
 void displaySeratoValues(JSONObject jsonObject) {
-  int vDist = 20;
-  for (Object obj : jsonObject.keys()) {
-    int hDist = 0;
-    String property = obj.toString() + ": ";
-    if (!property.startsWith("UNKNOWN")) {
-      fill(255, 0, 0);
-      text(property, hDist, vDist); //red label
-      hDist += textWidth(property); //step across for val
-      String val = json.get(obj.toString()).toString();
-      fill(255);//white text for vals
-      text(val, hDist, vDist);
-      vDist += 32; //step down for next obj
-    }
-  }
+  //int vDist = 20;
+  //for (Object obj : jsonObject.keys()) {
+  //  int hDist = 0;
+  //  String property = obj.toString() + ": ";
+  //  if (!property.startsWith("UNKNOWN")) {
+  //    fill(255, 0, 0);
+  //    text(property, hDist, vDist); //red label
+  //    hDist += textWidth(property); //step across for val
+  //    String val = json.get(obj.toString()).toString();
+  //    fill(255);//white text for vals
+  //    text(val, hDist, vDist);
+  //    vDist += 32; //step down for next obj
+  //  }
+  //}
 }
 
 void updateAudioFromDrawLoop() {
